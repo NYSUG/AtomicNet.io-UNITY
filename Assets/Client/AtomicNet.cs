@@ -1,6 +1,3 @@
-#define TCPON
-#define UDP
-
 using UnityEngine;
 using System;
 using System.Collections;
@@ -228,6 +225,18 @@ public class AtomicNet : MonoBehaviour {
 		netMsg.Add (AtomicNetLib.kSendToPoolMaster, poolName);
 
 		_atomicNetLib.SendTCPMessage (netMsg, priority, callback);
+	}
+
+	public void SendUDPMessageToPoolMaster (string poolName, Dictionary<string, object> netMsg, TBUtils.AsynchronousProcedureCallbackType callback)
+	{
+		if (!_atomicNetLib.isStarted) {
+			Debug.LogError ("Can not send network message: Client is not connected");
+			return;
+		}
+
+		netMsg.Add (AtomicNetLib.kSendToPoolMaster, poolName);
+
+		_atomicNetLib.SendUDPMessage (netMsg, callback);
 	}
 
 	public void SendTCPMessageToPool (string poolName, Dictionary<string, object> netMsg, AtomicNetLib.PriorityChannel priority, TBUtils.AsynchronousProcedureCallbackType callback)

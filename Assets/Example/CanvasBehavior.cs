@@ -17,6 +17,7 @@ public class CanvasBehavior : MonoBehaviour {
 	public InputField poolTypeInputField;
 	public InputField numberOfMessagesInputField;
 	public InputField sendToPoolInputField;
+	public InputField connIdInputField;
 
 	private bool _isConnected;
 
@@ -32,6 +33,7 @@ public class CanvasBehavior : MonoBehaviour {
 		Assert.IsNotNull (poolTypeInputField, string.Format ("{0}: poolTypeInputField has not been assigned in the inspector", this.name));
 		Assert.IsNotNull (numberOfMessagesInputField, string.Format ("{0}: numberOfMessagesInputField has not been assigned in the inspector", this.name));
 		Assert.IsNotNull (sendToPoolInputField, string.Format ("{0}: sendToPoolInputField has not been assigned in the inspector", this.name));
+		Assert.IsNotNull (connIdInputField, string.Format ("{0}: connIdInputField has not been assigned in the inspector", this.name));
 	}
 
 	private void Start ()
@@ -188,6 +190,126 @@ public class CanvasBehavior : MonoBehaviour {
 			};
 
 			AtomicNet.instance.SendTCPMessageToPool (sendToPoolInputField.text, data, AtomicNetLib.PriorityChannel.ALL_COST_CHANNEL, (string error) => {
+				if (!string.IsNullOrEmpty (error)) {
+					Debug.LogError (error);
+					return;
+				}
+			});
+		}
+	}
+
+	public void SendUDPMessageToPoolMasterPressed ()
+	{
+		int num = int.Parse (numberOfMessagesInputField.text);
+
+		for (int i = 0; i < num; i++) {
+
+			Dictionary<string, object> data = new Dictionary<string, object> () {
+				{ "TestMessage", "I am the common model of a modern major general" },
+				{ "Continued Message", "I've information vegetable, animal, and mineral" },
+			};
+
+			AtomicNet.instance.SendUDPMessageToPoolMaster (sendToPoolInputField.text, data, (string error) => {
+				if (!string.IsNullOrEmpty (error)) {
+					Debug.LogError (error);
+					return;
+				}
+			});
+		}
+	}
+
+	public void SendTCPMessageToPoolMasterPressed ()
+	{
+		int num = int.Parse (numberOfMessagesInputField.text);
+
+		for (int i = 0; i < num; i++) {
+
+			Dictionary<string, object> data = new Dictionary<string, object> () {
+				{ "TestMessage", "I am the common model of a modern major general" },
+				{ "Continued Message", "I've information vegetable, animal, and mineral" },
+			};
+
+			AtomicNet.instance.SendTCPMessageToPoolMaster (sendToPoolInputField.text, data, AtomicNetLib.PriorityChannel.ALL_COST_CHANNEL, (string error) => {
+				if (!string.IsNullOrEmpty (error)) {
+					Debug.LogError (error);
+					return;
+				}
+			});
+		}
+	}
+
+	public void SendUDPMessageToConnIdPressed ()
+	{
+		int num = int.Parse (numberOfMessagesInputField.text);
+
+		for (int i = 0; i < num; i++) {
+
+			Dictionary<string, object> data = new Dictionary<string, object> () {
+				{ "TestMessage", "I am the common model of a modern major general" },
+				{ "Continued Message", "I've information vegetable, animal, and mineral" },
+			};
+
+			AtomicNet.instance.SendUDPMessageToConnId (int.Parse (connIdInputField.text), data, (string error) => {
+				if (!string.IsNullOrEmpty (error)) {
+					Debug.LogError (error);
+					return;
+				}
+			});
+		}
+	}
+
+	public void SendTCPMessageToConnIdPressed ()
+	{
+		int num = int.Parse (numberOfMessagesInputField.text);
+
+		for (int i = 0; i < num; i++) {
+
+			Dictionary<string, object> data = new Dictionary<string, object> () {
+				{ "TestMessage", "I am the common model of a modern major general" },
+				{ "Continued Message", "I've information vegetable, animal, and mineral" },
+			};
+
+			AtomicNet.instance.SendTCPMessageToConnId (int.Parse (connIdInputField.text), data, AtomicNetLib.PriorityChannel.ALL_COST_CHANNEL, (string error) => {
+				if (!string.IsNullOrEmpty (error)) {
+					Debug.LogError (error);
+					return;
+				}
+			});
+		}
+	}
+
+	public void SendUDPMessageToOthersPressed ()
+	{
+		int num = int.Parse (numberOfMessagesInputField.text);
+
+		for (int i = 0; i < num; i++) {
+
+			Dictionary<string, object> data = new Dictionary<string, object> () {
+				{ "TestMessage", "I am the common model of a modern major general" },
+				{ "Continued Message", "I've information vegetable, animal, and mineral" },
+			};
+
+			AtomicNet.instance.SendUDPMessageToOthersInPool (sendToPoolInputField.text, data, (string error) => {
+				if (!string.IsNullOrEmpty (error)) {
+					Debug.LogError (error);
+					return;
+				}
+			});
+		}
+	}
+
+	public void SendTCPMessageToOthersPressed ()
+	{
+		int num = int.Parse (numberOfMessagesInputField.text);
+
+		for (int i = 0; i < num; i++) {
+
+			Dictionary<string, object> data = new Dictionary<string, object> () {
+				{ "TestMessage", "I am the common model of a modern major general" },
+				{ "Continued Message", "I've information vegetable, animal, and mineral" },
+			};
+
+			AtomicNet.instance.SendTCPMessageToOthersInPool (sendToPoolInputField.text, data, AtomicNetLib.PriorityChannel.ALL_COST_CHANNEL, (string error) => {
 				if (!string.IsNullOrEmpty (error)) {
 					Debug.LogError (error);
 					return;

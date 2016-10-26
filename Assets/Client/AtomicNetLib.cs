@@ -206,7 +206,7 @@ namespace NYSU {
 
 				// Start the timers
 				_pingTimer.Enabled = true;
-				_disconnectCheckTimer.Enabled = true;
+//				_disconnectCheckTimer.Enabled = true;
 
 				// Set the last ping
 				_lastPingReceived = DateTime.Now;
