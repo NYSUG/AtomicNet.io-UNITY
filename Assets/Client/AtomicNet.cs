@@ -5,6 +5,7 @@ using UnityEngine;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using NYSU;
 
 public class AtomicNet : MonoBehaviour {
 
@@ -109,6 +110,11 @@ public class AtomicNet : MonoBehaviour {
 	public int GetRtt ()
 	{
 		return _atomicNetLib.rtt;
+	}
+
+	public bool IsConnected ()
+	{
+		return _atomicNetLib.isConnected;
 	}
 
 #endregion

@@ -4,6 +4,8 @@ using UnityEngine.UI;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
+using NYSU;
 
 public class CanvasBehavior : MonoBehaviour {
 
@@ -16,6 +18,9 @@ public class CanvasBehavior : MonoBehaviour {
 	public InputField numberOfMessagesInputField;
 	public InputField sendToPoolInputField;
 
+	private bool _isConnected;
+
+	private Thread _readThread;
 
 	private void Awake ()
 	{
@@ -32,9 +37,34 @@ public class CanvasBehavior : MonoBehaviour {
 	private void Start ()
 	{
 		AtomicNet.instance.StartAtomicNetClient ();
+
+		_readThread = new Thread (new ThreadStart (_ReadNetworkMessages));
+		_readThread.Start ();
 	}
 
-	private void Update ()
+	private void OnApplicationQuit ()
+	{
+		if (_readThread != null) {
+			_readThread.Abort ();
+		}
+	}
+
+	private void _ReadNetworkMessages ()
+	{
+		while (true) {
+			if (_isConnected) {
+			
+				if (!AtomicNet.instance.IsConnected ()) {
+					_isConnected = false;
+					Debug.LogError ("We have been disconnected");
+				}
+
+				_CheckForMessages ();
+			}
+		}
+	}
+
+	private void _CheckForMessages ()
 	{
 		Dictionary<string, object> serverMessage = AtomicNet.instance.CheckForServerMessages ();
 
@@ -65,8 +95,17 @@ public class CanvasBehavior : MonoBehaviour {
 				return;
 			}
 
+			_isConnected = true;
+
 			Debug.Log ("AtomicNet connected successfully");
 		});
+	}
+
+	public void DisconnectButtonPressed ()
+	{
+		_isConnected = false;
+
+		AtomicNet.instance.StopAtomicNetClient ();
 	}
 
 	public void SetMainPoolButtonPressed ()
@@ -148,7 +187,7 @@ public class CanvasBehavior : MonoBehaviour {
 				{ "Continued Message", "I've information vegetable, animal, and mineral" },
 			};
 
-			AtomicNet.instance.SendTCPMessageToPool (sendToPoolInputField.text, data, AtomicNetLib.PriorityChannel.ALL_COSTS_CHANNEL, (string error) => {
+			AtomicNet.instance.SendTCPMessageToPool (sendToPoolInputField.text, data, AtomicNetLib.PriorityChannel.ALL_COST_CHANNEL, (string error) => {
 				if (!string.IsNullOrEmpty (error)) {
 					Debug.LogError (error);
 					return;
