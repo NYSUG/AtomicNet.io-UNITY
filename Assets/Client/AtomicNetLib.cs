@@ -42,7 +42,14 @@ namespace NYSU {
 			public bool isMsgLength;
 			public string lengthMsg;
 			public Dictionary<string, object> msg = new Dictionary<string, object> ();
-			public TBUtils.AsynchronousProcedureCallbackType callback;
+			public TBUtils.GenericObjectCallbackType callback;
+		}
+
+		public class CallbackHandle {
+			public string type;
+			public TBUtils.GenericObjectCallbackType callback;
+			public string error;
+			public object obj;
 		}
 
 		/// <summary>
@@ -102,6 +109,9 @@ namespace NYSU {
 
 		// Mapping of requests this client has made
 		private Dictionary<string, TBUtils.GenericObjectCallbackType> _callbackMappings = new Dictionary<string, TBUtils.GenericObjectCallbackType> ();
+
+		// Callback Handles for completed tasks
+		public Queue<CallbackHandle> callbackHandles = new Queue<CallbackHandle> ();
 
 		// Channel Info
 		public enum PriorityChannel {
@@ -178,6 +188,21 @@ namespace NYSU {
 
 			// Set started to true
 			isStarted = true;
+		}
+
+		public string GetMainPool ()
+		{
+			return _poolMembership.ContainsKey (kMain) ? _poolMembership[kMain] : string.Empty;
+		}
+
+		public List<string> GetAllPools ()
+		{
+			List<string> retval = new List<string> ();
+			foreach (KeyValuePair<string, string> entry in _poolMembership) {
+				retval.Add (entry.Value);
+			}
+
+			return retval;
 		}
 
 		public void Connect (string ipAddress, int sendPort, int readPort, int udpPort, TBUtils.GenericObjectCallbackType callback)
@@ -513,7 +538,13 @@ namespace NYSU {
 						if (networkMessage.callback == null)
 							return;
 
-						networkMessage.callback (string.Empty);
+						// Queue this to be handled by AtomicNet.cs
+						callbackHandles.Enqueue (new CallbackHandle () {
+							type = "sendNetworkMessage",
+							callback = networkMessage.callback,
+							error = string.Empty,
+							obj = null,
+						});
 					}
 
 				}, _sendStream);
@@ -544,7 +575,7 @@ namespace NYSU {
 				_callbackMappings [kAddPool] = callback;
 			}
 
-			SendTCPMessage (netMsg, PriorityChannel.ALL_COST_CHANNEL, (string error) => {
+			SendTCPMessage (netMsg, PriorityChannel.ALL_COST_CHANNEL, (string error, object obj) => {
 				if (!string.IsNullOrEmpty (error)) {
 					callback (error, null);
 					return;
@@ -580,7 +611,7 @@ namespace NYSU {
 				_callbackMappings [kMoveToPool] = callback;
 			}
 
-			SendTCPMessage (netMsg, PriorityChannel.ALL_COST_CHANNEL, (string error) => {
+			SendTCPMessage (netMsg, PriorityChannel.ALL_COST_CHANNEL, (string error, object obj) => {
 				if (!string.IsNullOrEmpty (error)) {
 					callback (error, null);
 					return;
@@ -608,7 +639,7 @@ namespace NYSU {
 				{ kPoolType, poolType },
 			};
 
-			SendTCPMessage (netMsg, PriorityChannel.ALL_COST_CHANNEL, (string error) => {
+			SendTCPMessage (netMsg, PriorityChannel.ALL_COST_CHANNEL, (string error, object obj) => {
 				if (!string.IsNullOrEmpty (error)) {
 					callback (error, null);
 					return;
@@ -640,7 +671,7 @@ namespace NYSU {
 				_callbackMappings ["poolMaster"] = callback;
 			}
 
-			SendTCPMessage (netMsg, PriorityChannel.ALL_COST_CHANNEL, (string error) => {
+			SendTCPMessage (netMsg, PriorityChannel.ALL_COST_CHANNEL, (string error, object obj) => {
 				if (!string.IsNullOrEmpty (error)) {
 					callback (error, null);
 					return;
@@ -675,7 +706,14 @@ namespace NYSU {
 					return;
 				}
 
-				_callbackMappings[kConnect] (string.Empty, netMsg);
+				// Queue this to be handled by AtomicNet.cs
+				callbackHandles.Enqueue (new CallbackHandle () {
+					type = kConnect,
+					callback = _callbackMappings[kConnect],
+					error = string.Empty,
+					obj = netMsg,
+				});
+
 				_callbackMappings.Remove (kConnect);
 			}
 
@@ -692,7 +730,14 @@ namespace NYSU {
 					return;
 				}
 
-				_callbackMappings [kMoveToPool] (string.Empty, netMsg);
+				// Queue this to be handled by AtomicNet.cs
+				callbackHandles.Enqueue (new CallbackHandle () {
+					type = kMoveToPool,
+					callback = _callbackMappings[kMoveToPool],
+					error = string.Empty,
+					obj = netMsg,
+				});
+
 				_callbackMappings.Remove (kMoveToPool);
 			}
 
@@ -700,11 +745,10 @@ namespace NYSU {
 
 				if (_poolMembership.ContainsKey (netMsg[kAddPool].ToString ())) {
 					Console.WriteLine (string.Format ("Error: we have been added to a pool we already have a membership with: {0}", netMsg[kAddPool]));
-					return;
+				} else {
+					_poolMembership.Add (netMsg[kAddPool].ToString (), netMsg[kAddPool].ToString ());
+					Console.WriteLine (string.Format ("AtomicNetLib -> pool membership added: {0}", _poolMembership[netMsg[kAddPool].ToString ()]));
 				}
-
-				_poolMembership.Add (netMsg[kAddPool].ToString (), netMsg[kAddPool].ToString ());
-				Console.WriteLine (string.Format ("AtomicNetLib -> pool membership added: {0}", _poolMembership[netMsg[kAddPool].ToString ()]));
 
 				// The server has changed us to this pool
 				if (!_callbackMappings.ContainsKey (kAddPool)) {
@@ -712,8 +756,35 @@ namespace NYSU {
 					return;
 				}
 
-				_callbackMappings [kAddPool] (string.Empty, netMsg);
+				// Queue this to be handled by AtomicNet.cs
+				callbackHandles.Enqueue (new CallbackHandle () {
+					type = kAddPool,
+					callback = _callbackMappings[kAddPool],
+					error = string.Empty,
+					obj = netMsg,
+				});
+
 				_callbackMappings.Remove (kAddPool);
+			}
+
+			if (netMsg.ContainsKey (kPoolMaster)) {
+
+				Console.WriteLine (string.Format ("We have been set as the poolmaster of: {0}", netMsg[kPoolMaster]));
+
+				if (!_callbackMappings.ContainsKey (kPoolMaster)) {
+					Console.WriteLine ("We don't have a callback mapping for kPoolMaster");
+					return;
+				}
+
+				// Queue this to be handled by AtomicNet.cs
+				callbackHandles.Enqueue (new CallbackHandle () {
+					type = kPoolMaster,
+					callback = _callbackMappings[kPoolMaster],
+					error = string.Empty,
+					obj = netMsg,
+				});
+
+				_callbackMappings.Remove (kPoolMaster);
 			}
 
 			// Ping message
@@ -727,19 +798,6 @@ namespace NYSU {
 
 				// Used to determine if we are disconnected
 				_lastPingReceived = DateTime.Now;
-			}
-
-			if (netMsg.ContainsKey (kPoolMaster)) {
-
-				Console.WriteLine (string.Format ("We have been set as the poolmaster of: {0}", netMsg[kPoolMaster]));
-
-				if (!_callbackMappings.ContainsKey (kPoolMaster)) {
-					Console.WriteLine ("We don't have a callback mapping for kPoolMaster");
-					return;
-				}
-
-				_callbackMappings [kPoolMaster] (string.Empty, netMsg);
-				_callbackMappings.Remove (kPoolMaster);
 			}
 
 			// This message is meant for the server
@@ -788,7 +846,7 @@ namespace NYSU {
 			SendUDPMessage (netMsg, null);
 		}
 
-		private void ConnIdSentCallback (string error)
+		private void ConnIdSentCallback (string error, object obj)
 		{
 			if (!string.IsNullOrEmpty (error)) {
 				Console.WriteLine (error);
@@ -807,7 +865,7 @@ namespace NYSU {
 				{ "connId", connId },
 			};
 
-			SendUDPMessage (netMsg, (string error) => {
+			SendUDPMessage (netMsg, (string error, object obj) => {
 				if (!string.IsNullOrEmpty (error)) {
 					Console.WriteLine (error);
 					return;
@@ -837,7 +895,7 @@ namespace NYSU {
 
 #endregion
 
-		public void SendTCPMessage (Dictionary<string, object> netMsg, AtomicNetLib.PriorityChannel priority, TBUtils.AsynchronousProcedureCallbackType callback)
+		public void SendTCPMessage (Dictionary<string, object> netMsg, AtomicNetLib.PriorityChannel priority, TBUtils.GenericObjectCallbackType callback)
 		{       
 			string msg = MiniJSON.Json.Serialize (netMsg);
 			byte[] outStream = Encoding.UTF8.GetBytes(msg);
@@ -856,7 +914,7 @@ namespace NYSU {
 			});
 		}
 			
-		public void SendUDPMessage (Dictionary<string, object> netMsg, TBUtils.AsynchronousProcedureCallbackType callback)
+		public void SendUDPMessage (Dictionary<string, object> netMsg, TBUtils.GenericObjectCallbackType callback)
 		{
 			try {
 				string msg = MiniJSON.Json.Serialize (netMsg);
@@ -869,7 +927,7 @@ namespace NYSU {
 						_udpClient.EndSend (ar);
 
 						if (callback != null)
-							callback (string.Empty);
+							callback (string.Empty, null);
 					}
 
 				}, _udpClient);

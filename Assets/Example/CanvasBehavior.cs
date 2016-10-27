@@ -169,7 +169,7 @@ public class CanvasBehavior : MonoBehaviour {
 				{ "Continued Message", "I've information vegetable, animal, and mineral" },
 			};
 
-			AtomicNet.instance.SendUDPMessageToPool (sendToPoolInputField.text, data, (string error) => {
+			AtomicNet.instance.SendUDPMessageToPool (sendToPoolInputField.text, data, (string error, object obj) => {
 				if (!string.IsNullOrEmpty (error)) {
 					Debug.LogError (error);
 					return;
@@ -189,7 +189,7 @@ public class CanvasBehavior : MonoBehaviour {
 				{ "Continued Message", "I've information vegetable, animal, and mineral" },
 			};
 
-			AtomicNet.instance.SendTCPMessageToPool (sendToPoolInputField.text, data, AtomicNetLib.PriorityChannel.ALL_COST_CHANNEL, (string error) => {
+			AtomicNet.instance.SendTCPMessageToPool (sendToPoolInputField.text, data, AtomicNetLib.PriorityChannel.ALL_COST_CHANNEL, (string error, object obj) => {
 				if (!string.IsNullOrEmpty (error)) {
 					Debug.LogError (error);
 					return;
@@ -209,7 +209,7 @@ public class CanvasBehavior : MonoBehaviour {
 				{ "Continued Message", "I've information vegetable, animal, and mineral" },
 			};
 
-			AtomicNet.instance.SendUDPMessageToPoolMaster (sendToPoolInputField.text, data, (string error) => {
+			AtomicNet.instance.SendUDPMessageToPoolMaster (sendToPoolInputField.text, data, (string error, object obj) => {
 				if (!string.IsNullOrEmpty (error)) {
 					Debug.LogError (error);
 					return;
@@ -229,7 +229,7 @@ public class CanvasBehavior : MonoBehaviour {
 				{ "Continued Message", "I've information vegetable, animal, and mineral" },
 			};
 
-			AtomicNet.instance.SendTCPMessageToPoolMaster (sendToPoolInputField.text, data, AtomicNetLib.PriorityChannel.ALL_COST_CHANNEL, (string error) => {
+			AtomicNet.instance.SendTCPMessageToPoolMaster (sendToPoolInputField.text, data, AtomicNetLib.PriorityChannel.ALL_COST_CHANNEL, (string error, object obj) => {
 				if (!string.IsNullOrEmpty (error)) {
 					Debug.LogError (error);
 					return;
@@ -249,7 +249,7 @@ public class CanvasBehavior : MonoBehaviour {
 				{ "Continued Message", "I've information vegetable, animal, and mineral" },
 			};
 
-			AtomicNet.instance.SendUDPMessageToConnId (int.Parse (connIdInputField.text), data, (string error) => {
+			AtomicNet.instance.SendUDPMessageToConnId (int.Parse (connIdInputField.text), data, (string error, object obj) => {
 				if (!string.IsNullOrEmpty (error)) {
 					Debug.LogError (error);
 					return;
@@ -269,7 +269,7 @@ public class CanvasBehavior : MonoBehaviour {
 				{ "Continued Message", "I've information vegetable, animal, and mineral" },
 			};
 
-			AtomicNet.instance.SendTCPMessageToConnId (int.Parse (connIdInputField.text), data, AtomicNetLib.PriorityChannel.ALL_COST_CHANNEL, (string error) => {
+			AtomicNet.instance.SendTCPMessageToConnId (int.Parse (connIdInputField.text), data, AtomicNetLib.PriorityChannel.ALL_COST_CHANNEL, (string error, object obj) => {
 				if (!string.IsNullOrEmpty (error)) {
 					Debug.LogError (error);
 					return;
@@ -289,7 +289,7 @@ public class CanvasBehavior : MonoBehaviour {
 				{ "Continued Message", "I've information vegetable, animal, and mineral" },
 			};
 
-			AtomicNet.instance.SendUDPMessageToOthersInPool (sendToPoolInputField.text, data, (string error) => {
+			AtomicNet.instance.SendUDPMessageToOthersInPool (sendToPoolInputField.text, data, (string error, object obj) => {
 				if (!string.IsNullOrEmpty (error)) {
 					Debug.LogError (error);
 					return;
@@ -309,7 +309,7 @@ public class CanvasBehavior : MonoBehaviour {
 				{ "Continued Message", "I've information vegetable, animal, and mineral" },
 			};
 
-			AtomicNet.instance.SendTCPMessageToOthersInPool (sendToPoolInputField.text, data, AtomicNetLib.PriorityChannel.ALL_COST_CHANNEL, (string error) => {
+			AtomicNet.instance.SendTCPMessageToOthersInPool (sendToPoolInputField.text, data, AtomicNetLib.PriorityChannel.ALL_COST_CHANNEL, (string error, object obj) => {
 				if (!string.IsNullOrEmpty (error)) {
 					Debug.LogError (error);
 					return;
