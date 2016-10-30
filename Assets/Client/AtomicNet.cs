@@ -54,8 +54,8 @@ public class AtomicNet : MonoBehaviour {
 			action.Invoke ();
 		}
 
+		// Listen for callbacks
 		if (_atomicNetLib.callbackHandles.Count > 0) {
-			
 			AtomicNetLib.CallbackHandle handle = _atomicNetLib.callbackHandles.Dequeue ();
 			handle.callback (handle.error, handle.obj);
 		}
@@ -214,15 +214,7 @@ public class AtomicNet : MonoBehaviour {
 
 	public void SendTCPMessageToOthersInPool (Dictionary<string, object> netMsg, AtomicNetLib.PriorityChannel priority, TBUtils.GenericObjectCallbackType callback)
 	{
-		if (!_atomicNetLib.isStarted) {
-			Debug.LogError ("Can not send network message: Client is not connected");
-			return;
-		}
-
-		netMsg.Add (AtomicNetLib.kSendToOthers, GetMainPool ());
-		netMsg.Add ("connId", _atomicNetLib.connId);
-
-		_atomicNetLib.SendTCPMessage (netMsg, priority, callback);
+		SendTCPMessageToOthersInPool (GetMainPool (), netMsg, priority, callback);
 	}
 
 	public void SendTCPMessageToOthersInPool (string poolName, Dictionary<string, object> netMsg, AtomicNetLib.PriorityChannel priority, TBUtils.GenericObjectCallbackType callback)
@@ -240,15 +232,7 @@ public class AtomicNet : MonoBehaviour {
 
 	public void SendUDPMessageToOthersInPool (Dictionary<string, object> netMsg, TBUtils.GenericObjectCallbackType callback)
 	{
-		if (!_atomicNetLib.isStarted) {
-			Debug.LogError ("Can not send network message: Client is not connected");
-			return;
-		}
-
-		netMsg.Add (AtomicNetLib.kSendToOthers, GetMainPool ());
-		netMsg.Add ("connId", _atomicNetLib.connId);
-
-		_atomicNetLib.SendUDPMessage (netMsg, callback);
+		SendUDPMessageToOthersInPool (GetMainPool (), netMsg, callback);
 	}
 
 	public void SendUDPMessageToOthersInPool (string poolName, Dictionary<string, object> netMsg, TBUtils.GenericObjectCallbackType callback)
@@ -266,14 +250,7 @@ public class AtomicNet : MonoBehaviour {
 
 	public void SendTCPMessageToPoolMaster (Dictionary<string, object> netMsg, AtomicNetLib.PriorityChannel priority, TBUtils.GenericObjectCallbackType callback)
 	{
-		if (!_atomicNetLib.isStarted) {
-			Debug.LogError ("Can not send network message: Client is not connected");
-			return;
-		}
-
-		netMsg.Add (AtomicNetLib.kSendToPoolMaster, GetMainPool ());
-
-		_atomicNetLib.SendTCPMessage (netMsg, priority, callback);
+		SendTCPMessageToPoolMaster (GetMainPool (), netMsg, priority, callback);
 	}
 
 	public void SendTCPMessageToPoolMaster (string poolName, Dictionary<string, object> netMsg, AtomicNetLib.PriorityChannel priority, TBUtils.GenericObjectCallbackType callback)
@@ -290,14 +267,7 @@ public class AtomicNet : MonoBehaviour {
 
 	public void SendUDPMessageToPoolMaster (Dictionary<string, object> netMsg, TBUtils.GenericObjectCallbackType callback)
 	{
-		if (!_atomicNetLib.isStarted) {
-			Debug.LogError ("Can not send network message: Client is not connected");
-			return;
-		}
-
-		netMsg.Add (AtomicNetLib.kSendToPoolMaster, GetMainPool ());
-
-		_atomicNetLib.SendUDPMessage (netMsg, callback);
+		SendUDPMessageToPoolMaster (GetMainPool (), netMsg, callback);
 	}
 
 	public void SendUDPMessageToPoolMaster (string poolName, Dictionary<string, object> netMsg, TBUtils.GenericObjectCallbackType callback)
@@ -314,14 +284,7 @@ public class AtomicNet : MonoBehaviour {
 
 	public void SendTCPMessageToPool (Dictionary<string, object> netMsg, AtomicNetLib.PriorityChannel priority, TBUtils.GenericObjectCallbackType callback)
 	{
-		if (!_atomicNetLib.isStarted) {
-			Debug.LogError ("Can not send network message: Client is not connected");
-			return;
-		}
-
-		netMsg.Add (AtomicNetLib.kSendToPool, _atomicNetLib.GetMainPool ());
-
-		_atomicNetLib.SendTCPMessage (netMsg, priority, callback);
+		SendTCPMessageToPool (GetMainPool (), netMsg, priority, callback);
 	}
 
 	public void SendTCPMessageToPool (string poolName, Dictionary<string, object> netMsg, AtomicNetLib.PriorityChannel priority, TBUtils.GenericObjectCallbackType callback)
@@ -338,14 +301,7 @@ public class AtomicNet : MonoBehaviour {
 
 	public void SendUDPMessageToPool (Dictionary<string, object> netMsg, TBUtils.GenericObjectCallbackType callback)
 	{
-		if (!_atomicNetLib.isStarted) {
-			Debug.LogError ("Can not send network message: Client is not connected");
-			return;
-		}
-
-		netMsg.Add (AtomicNetLib.kSendToPool, _atomicNetLib.GetMainPool ());
-
-		_atomicNetLib.SendUDPMessage (netMsg, callback);
+		SendUDPMessageToPool (GetMainPool (), netMsg, callback);
 	}
 
 	public void SendUDPMessageToPool (string poolName, Dictionary<string, object> netMsg, TBUtils.GenericObjectCallbackType callback)

@@ -36,7 +36,13 @@ namespace NYSU {
 		public const string kAll 				= "all";
 		public const string kMain				= "main";
 
-		public const int maxQueueLength 		= 64;
+		public const int kMaxQueueLength 		= 64;
+
+		private const int kInitialMessageSize	= 8;
+		private const int kQueueInitialPriority = 8;
+		private const int kPingInterval			= 5000;
+		private const int kDisconnectInterval	= 3000;
+		private const int kDisconnectTimeAdd	= 15;
 
 		public class NYSUNetworkMessage {
 			public bool isMsgLength;
@@ -68,7 +74,7 @@ namespace NYSU {
 		public Queue<Dictionary<string, object>> connMessages = new Queue<Dictionary<string, object>> ();
 
 		// Connection info
-		public int connId;
+		public int connId = 0;
 
 		// Round Trip time
 		public int rtt = 0;
@@ -125,13 +131,13 @@ namespace NYSU {
 		private static Dictionary<PriorityChannel, RingBuffer<NYSUNetworkMessage>> _sendMessageQueues = new Dictionary<PriorityChannel, RingBuffer<NYSUNetworkMessage>> ();
 
 		// Message Frame
-		private int _readMsgSize = 8;
+		private int _readMsgSize = kInitialMessageSize;
 
 		// Concactinated Received Message
 		private string _msg = string.Empty;
 
 		// Queue Starvation prevention
-		private int queuePriority = 8;
+		private int queuePriority = kQueueInitialPriority;
 
 		// Pools
 		private Dictionary<string, string> _poolMembership = new Dictionary<string, string> ();
@@ -145,10 +151,10 @@ namespace NYSU {
 			_sendMessageQueues.Clear ();
 
 			// Set up the message Queues
-			_sendMessageQueues.Add (PriorityChannel.ALL_COST_CHANNEL, new RingBuffer<NYSUNetworkMessage> (maxQueueLength));
-			_sendMessageQueues.Add (PriorityChannel.STATE_UPDATE_CHANNEL, new RingBuffer<NYSUNetworkMessage> (maxQueueLength));
-			_sendMessageQueues.Add (PriorityChannel.RELIABLE_CHANNEL, new RingBuffer<NYSUNetworkMessage> (maxQueueLength));
-			_sendMessageQueues.Add (PriorityChannel.UNRELIABLE_CHANNEL, new RingBuffer<NYSUNetworkMessage> (maxQueueLength));
+			_sendMessageQueues.Add (PriorityChannel.ALL_COST_CHANNEL, new RingBuffer<NYSUNetworkMessage> (kMaxQueueLength));
+			_sendMessageQueues.Add (PriorityChannel.STATE_UPDATE_CHANNEL, new RingBuffer<NYSUNetworkMessage> (kMaxQueueLength));
+			_sendMessageQueues.Add (PriorityChannel.RELIABLE_CHANNEL, new RingBuffer<NYSUNetworkMessage> (kMaxQueueLength));
+			_sendMessageQueues.Add (PriorityChannel.UNRELIABLE_CHANNEL, new RingBuffer<NYSUNetworkMessage> (kMaxQueueLength));
 
 			// Clear the pool membership
 			_poolMembership.Clear ();
@@ -180,10 +186,10 @@ namespace NYSU {
 			_udpThread = new Thread (new ThreadStart (_ReadUDPMessage));
 
 			// Set up our timers
-			_pingTimer = new System.Timers.Timer (5000);
+			_pingTimer = new System.Timers.Timer (kPingInterval);
 			_pingTimer.Elapsed += new System.Timers.ElapsedEventHandler (_pingElapsed);
 
-			_disconnectCheckTimer = new System.Timers.Timer (3000);
+			_disconnectCheckTimer = new System.Timers.Timer (kDisconnectInterval);
 			_disconnectCheckTimer.Elapsed += new System.Timers.ElapsedEventHandler (_disconnectCheckElapsed);
 
 			// Set started to true
@@ -260,13 +266,20 @@ namespace NYSU {
 			_pingTimer = null;
 			_disconnectCheckTimer = null;
 
+			// Abort the threads
 			if (_readThread != null) {
-
-				// Abort the threads
 				_readThread.Abort();
-				_sendThread.Abort();
-				_udpThread.Abort();
+			}
 
+			if (_sendThread != null) {
+				_sendThread.Abort(); 
+			}
+
+			if (_udpThread != null) {
+				_udpThread.Abort();
+			}
+
+			if (_readClient != null) {
 				// Leave our TCP clients open until we join a new game or exit the game.
 				// Closing them immediately when leaving a match was causing issues with retreving data from www calls.
 				if (_readClient.Client.Connected)
@@ -274,13 +287,16 @@ namespace NYSU {
 					_readClient.Client.Shutdown(SocketShutdown.Both);
 					_readClient.Client.Disconnect(true);
 				}
+			}
 
+			if (_sendClient != null) {
 				if (_sendClient.Client.Connected)
 				{
 					_sendClient.Client.Shutdown(SocketShutdown.Both);
 					_sendClient.Client.Disconnect(true);
 				}
 			}
+
 				
 			if (_udpClient != null)
 			{
@@ -375,7 +391,7 @@ namespace NYSU {
 									_readMsgSize = int.Parse (_msg.Substring (3, _msg.Length - 3));
 								} else {
 
-									_readMsgSize = 8;
+									_readMsgSize = kInitialMessageSize;
 
 									if (string.IsNullOrEmpty (_msg)) {
 										Console.WriteLine ("netMsg is null!");
@@ -501,7 +517,7 @@ namespace NYSU {
 							_sendDequedNetworkMessage (msg);
 
 					} else {
-						queuePriority = 8;
+						queuePriority = kQueueInitialPriority;
 					}
 				}
 			}
@@ -628,7 +644,7 @@ namespace NYSU {
 		public void LeavePoolMessage (string pool, string poolType, TBUtils.GenericObjectCallbackType callback)
 		{
 			if (pool == _poolMembership[kMain]) {
-				Console.WriteLine ("Unable to leave pool: You can not use Leave Pool command for your main pool. Use MoveToPool instead");
+				callback ("Unable to leave pool: You can not use Leave Pool command for your main pool. Use MoveToPool instead", null);
 				return;
 			}
 
@@ -886,7 +902,7 @@ namespace NYSU {
 		// Called from a timer
 		private void _disconnectCheckElapsed (object sender, System.Timers.ElapsedEventArgs e)
 		{
-			DateTime cutOffTime = _lastPingReceived.AddSeconds (15);
+			DateTime cutOffTime = _lastPingReceived.AddSeconds (kDisconnectTimeAdd);
 
 			if (DateTime.Now > cutOffTime) {
 				isConnected = false;
