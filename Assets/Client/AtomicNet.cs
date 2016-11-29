@@ -7,6 +7,8 @@ using NYSU;
 public class AtomicNet : MonoBehaviour {
 
 	public const string kAtomicNet = "NYSU/AtomicNet";
+    public const string kApiKey = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOiI1ODNiMTJmNTBmNzdlYTAzYjUzZGJiNTciLCJwcm9qZWN0SWQiOiI1ODNiMjU0MmU0OTIwMTA0NzE0YTA4YWEifQ.lcefofDwTK6rN6Yip7y6DtSIBXEfa3mgQoowT__MUDY";
+    public const string kProjectId = "583b2542e4920104714a08aa";
 
 #region Singleton
 
@@ -103,6 +105,7 @@ public class AtomicNet : MonoBehaviour {
 		});
 	}
 
+    // TODO: Change this to be a pool name or pool id
 	public void Connect (string ipAddress, int sendPort, int readPort, int udpPort, TBUtils.GenericObjectCallbackType callback)
 	{
 		_atomicNetLib.Connect (ipAddress, sendPort, readPort, udpPort, callback);

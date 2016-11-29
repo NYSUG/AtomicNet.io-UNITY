@@ -42,6 +42,8 @@ public class CanvasBehavior : MonoBehaviour {
 
 		_readThread = new Thread (new ThreadStart (_ReadNetworkMessages));
 		_readThread.Start ();
+
+        AtomicNetRequest.Connect ();
 	}
 
 	private void OnApplicationQuit ()
