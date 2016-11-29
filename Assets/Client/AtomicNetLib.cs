@@ -25,6 +25,8 @@ namespace NYSU {
 		public const string kPoolMaster         = "poolMaster";
 		public const string kPoolType           = "poolType";
 		public const string kFromPool           = "fromPool";
+		public const string kRequestReceipt 	= "requestReceipt";
+		public const string kFinishReceipt 		= "finishReceipt";
 
 		public const string kSendToAll          = "sendToAll";
 		public const string kSendToPool         = "sendToPool";
@@ -128,7 +130,10 @@ namespace NYSU {
 		}
 
 		// Queues
-		private static Dictionary<PriorityChannel, RingBuffer<NYSUNetworkMessage>> _sendMessageQueues = new Dictionary<PriorityChannel, RingBuffer<NYSUNetworkMessage>> ();
+		private static RingBuffer<NYSUNetworkMessage> _sendMessageQueueAllCost = new RingBuffer<NYSUNetworkMessage> (kMaxQueueLength);
+		private static RingBuffer<NYSUNetworkMessage> _sendMessageQueueStateUpdate = new RingBuffer<NYSUNetworkMessage> (kMaxQueueLength);
+		private static RingBuffer<NYSUNetworkMessage> _sendMessageQueueReliable = new RingBuffer<NYSUNetworkMessage> (kMaxQueueLength);
+		private static RingBuffer<NYSUNetworkMessage> _sendMessageQueueUnreliable = new RingBuffer<NYSUNetworkMessage> (kMaxQueueLength);
 
 		// Message Frame
 		private int _readMsgSize = kInitialMessageSize;
@@ -148,14 +153,8 @@ namespace NYSU {
 		public void Init ()
 		{
 			// Clear the message Queues
-			_sendMessageQueues.Clear ();
-
-			// Set up the message Queues
-			_sendMessageQueues.Add (PriorityChannel.ALL_COST_CHANNEL, new RingBuffer<NYSUNetworkMessage> (kMaxQueueLength));
-			_sendMessageQueues.Add (PriorityChannel.STATE_UPDATE_CHANNEL, new RingBuffer<NYSUNetworkMessage> (kMaxQueueLength));
-			_sendMessageQueues.Add (PriorityChannel.RELIABLE_CHANNEL, new RingBuffer<NYSUNetworkMessage> (kMaxQueueLength));
-			_sendMessageQueues.Add (PriorityChannel.UNRELIABLE_CHANNEL, new RingBuffer<NYSUNetworkMessage> (kMaxQueueLength));
-
+			clearSendMessageQueues();
+				
 			// Clear the pool membership
 			_poolMembership.Clear ();
 
@@ -312,17 +311,7 @@ namespace NYSU {
 			}
 
 			// Clear out any unsent messages
-			foreach (KeyValuePair<PriorityChannel, RingBuffer<NYSUNetworkMessage>> entry in _sendMessageQueues)
-			{
-
-				for (int i = 0; i < entry.Value.Count; i++)
-				{
-					NYSUNetworkMessage m;
-					entry.Value.TryDequeue(out m);
-
-					// Don't send it, just dequeue it
-				}
-			}
+			clearSendMessageQueues();
 		}
 
 		public void ShutdownTCPClients () 
@@ -484,36 +473,28 @@ namespace NYSU {
 				if (_readyToSendMessages) {
 
 					// Process the queues in their priority
-					if (_sendMessageQueues[PriorityChannel.ALL_COST_CHANNEL].Count > 0) {
-
+					if (_sendMessageQueueAllCost.Count > 0) {
+						
 						NYSUNetworkMessage msg;
-						var dequeued = _sendMessageQueues[PriorityChannel.ALL_COST_CHANNEL].TryDequeue (out msg);
-
-						if (dequeued)
+						if (_sendMessageQueueAllCost.TryDequeue (out msg))
 							_sendDequedNetworkMessage (msg);
 
-					} else if (_sendMessageQueues[PriorityChannel.STATE_UPDATE_CHANNEL].Count > 0 && queuePriority > 5) {
-
+					} else if (_sendMessageQueueStateUpdate.Count > 0 && queuePriority > 5) {
+						
 						NYSUNetworkMessage msg;
-						var dequeued = _sendMessageQueues[PriorityChannel.STATE_UPDATE_CHANNEL].TryDequeue (out msg);
-
-						if (dequeued)
+						if (_sendMessageQueueStateUpdate.TryDequeue (out msg))
 							_sendDequedNetworkMessage (msg);
 
-					} else if (_sendMessageQueues[PriorityChannel.RELIABLE_CHANNEL].Count > 0 && queuePriority > 3) {
-
+					} else if (_sendMessageQueueReliable.Count > 0 && queuePriority > 3) {
+						
 						NYSUNetworkMessage msg;
-						var dequeued = _sendMessageQueues[PriorityChannel.RELIABLE_CHANNEL].TryDequeue (out msg);
-
-						if (dequeued)
+						if (_sendMessageQueueReliable.TryDequeue (out msg))
 							_sendDequedNetworkMessage (msg);
-
-					} else if (_sendMessageQueues[PriorityChannel.UNRELIABLE_CHANNEL].Count > 0) {
-
+						
+					} else if (_sendMessageQueueUnreliable.Count > 0) {
+						
 						NYSUNetworkMessage msg;
-						var dequeued = _sendMessageQueues[PriorityChannel.UNRELIABLE_CHANNEL].TryDequeue (out msg);
-
-						if (dequeued)
+						if (_sendMessageQueueUnreliable.TryDequeue (out msg))
 							_sendDequedNetworkMessage (msg);
 
 					} else {
@@ -816,6 +797,15 @@ namespace NYSU {
 				_lastPingReceived = DateTime.Now;
 			}
 
+			// Receipt Message
+			if (netMsg.ContainsKey (kRequestReceipt)) {
+				_SendReceipt (netMsg[kRequestReceipt].ToString ());
+			}
+
+			if (netMsg.ContainsKey (kFinishReceipt)) {
+				// TODO: Callback when this is finished
+			}
+
 			// This message is meant for the server
 			if (netMsg.ContainsKey (kSendToPoolMaster)) {
 				
@@ -856,13 +846,13 @@ namespace NYSU {
 				isMsgLength = true,
 				lengthMsg = string.Format ("MSG{0}", formattedOutStreamLength (outStream.Length)),
 				msg = netMsg,
-				callback = ConnIdSentCallback,
+				callback = _ConnIdSentCallback,
 			});
 				
 			SendUDPMessage (netMsg, null);
 		}
 
-		private void ConnIdSentCallback (string error, object obj)
+		private void _ConnIdSentCallback (string error, object obj)
 		{
 			if (!string.IsNullOrEmpty (error)) {
 				Console.WriteLine (error);
@@ -872,11 +862,30 @@ namespace NYSU {
 			_readyToSendMessages = true;
 		}
 
+		private void _SendReceipt (string receiptId)
+		{
+			Dictionary<string, object> netMsg = new Dictionary<string, object> () {
+				{ "messageReceipt", receiptId },
+				{ "connId", connId },
+			};
+
+			string msg = MiniJSON.Json.Serialize (netMsg);
+			byte[] outStream = System.Text.Encoding.UTF8.GetBytes(msg);
+
+			_sendDequedNetworkMessage (new NYSUNetworkMessage () {
+				isMsgLength = true,
+				lengthMsg = string.Format ("MSG{0}", formattedOutStreamLength (outStream.Length)),
+				msg = netMsg,
+				callback = null,
+			});
+		}
+
 		private void _SendPing ()
 		{
 			// Send this back to ourselves
 			Dictionary<string, object> netMsg = new Dictionary<string, object> () {
 				{ kPing, true },
+				{ "rtt", rtt },
 				{ "time", DateTime.Now },
 				{ "connId", connId },
 			};
@@ -911,23 +920,41 @@ namespace NYSU {
 
 #endregion
 
-		public void SendTCPMessage (Dictionary<string, object> netMsg, AtomicNetLib.PriorityChannel priority, TBUtils.GenericObjectCallbackType callback)
-		{       
+		public void SendTCPMessage (Dictionary<string, object> netMsg, AtomicNetLib.PriorityChannel priority, TBUtils.GenericObjectCallbackType callback, bool requestReceipt = false)
+		{
+			if (requestReceipt) {
+				if(!netMsg.ContainsKey(kRequestReceipt)){
+					netMsg.Add (kRequestReceipt, true);
+				}
+			}
+
 			string msg = MiniJSON.Json.Serialize (netMsg);
 			byte[] outStream = Encoding.UTF8.GetBytes(msg);
 
-			if (!_sendMessageQueues.ContainsKey (priority)) {
-				Console.WriteLine (string.Format ("priority missing: {0} for msg {1}", priority, msg));
-				return;
-			}
-
-			// Enqueue the message
-			_sendMessageQueues[priority].Enqueue (new NYSUNetworkMessage () {
+			NYSUNetworkMessage networkMsg = new NYSUNetworkMessage () {
 				isMsgLength = true,
 				lengthMsg = string.Format ("MSG{0}", formattedOutStreamLength (outStream.Length)),
 				msg = netMsg,
 				callback = callback,
-			});
+			};
+
+			switch (priority) {
+			case PriorityChannel.ALL_COST_CHANNEL:
+				_sendMessageQueueAllCost.Enqueue (networkMsg);
+				break;
+			case PriorityChannel.RELIABLE_CHANNEL:
+				_sendMessageQueueReliable.Enqueue (networkMsg);
+				break;
+			case PriorityChannel.STATE_UPDATE_CHANNEL:
+				_sendMessageQueueStateUpdate.Enqueue (networkMsg);
+				break;
+			case PriorityChannel.UNRELIABLE_CHANNEL:
+				_sendMessageQueueUnreliable.Enqueue (networkMsg);
+				break;
+			default:
+				Console.WriteLine (string.Format ("priority missing: {0} for msg {1}", priority, msg));
+				break;
+			}
 		}
 			
 		public void SendUDPMessage (Dictionary<string, object> netMsg, TBUtils.GenericObjectCallbackType callback)
@@ -968,6 +995,14 @@ namespace NYSU {
 			} else {
 				return length.ToString ();
 			}
+		}
+
+		private void clearSendMessageQueues() {
+			NYSUNetworkMessage temp;
+			while (_sendMessageQueueAllCost.TryDequeue (out temp)) { }
+			while (_sendMessageQueueStateUpdate.TryDequeue (out temp)) { }
+			while (_sendMessageQueueReliable.TryDequeue (out temp)) { }
+			while (_sendMessageQueueUnreliable.TryDequeue (out temp)) { }
 		}
 	}
 }
