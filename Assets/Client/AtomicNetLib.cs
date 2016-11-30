@@ -50,12 +50,12 @@ namespace NYSU {
 			public bool isMsgLength;
 			public string lengthMsg;
 			public Dictionary<string, object> msg = new Dictionary<string, object> ();
-			public TBUtils.GenericObjectCallbackType callback;
+			public AtomicUtils.GenericObjectCallbackType callback;
 		}
 
 		public class CallbackHandle {
 			public string type;
-			public TBUtils.GenericObjectCallbackType callback;
+			public AtomicUtils.GenericObjectCallbackType callback;
 			public string error;
 			public object obj;
 		}
@@ -116,10 +116,13 @@ namespace NYSU {
 		private DateTime _lastPingReceived;
 
 		// Mapping of requests this client has made
-		private Dictionary<string, TBUtils.GenericObjectCallbackType> _callbackMappings = new Dictionary<string, TBUtils.GenericObjectCallbackType> ();
+		private Dictionary<string, AtomicUtils.GenericObjectCallbackType> _callbackMappings = new Dictionary<string, AtomicUtils.GenericObjectCallbackType> ();
 
 		// Callback Handles for completed tasks
 		public Queue<CallbackHandle> callbackHandles = new Queue<CallbackHandle> ();
+
+		// List of commands to be run at a later time
+		private Dictionary<string, Action> _deferredActions = new Dictionary<string, Action> ();
 
 		// Channel Info
 		public enum PriorityChannel {
@@ -210,7 +213,7 @@ namespace NYSU {
 			return retval;
 		}
 
-		public void Connect (string ipAddress, int sendPort, int readPort, int udpPort, TBUtils.GenericObjectCallbackType callback)
+		public void Connect (string ipAddress, int sendPort, int readPort, int udpPort, AtomicUtils.GenericObjectCallbackType callback)
 		{
 			try {
 				// Connect the read socket
@@ -551,6 +554,48 @@ namespace NYSU {
 
 #endregion
 
+		// Pass in both the action and the initial callback in case we need to process an error
+		private void _ConnectAndDeferAction (string pool, string poolType, Action action, AtomicUtils.GenericObjectCallbackType callback)
+		{
+			// Store the action for use later
+			_deferredActions.Add (pool, action);
+
+			// Create a pool with this name
+			AtomicNetRequest.CreatePool (pool, poolType, AtomicNet.gameId, (string error, Dictionary<string, object> data) => {
+				if (!string.IsNullOrEmpty (error)) {
+					callback(error, null);
+					_deferredActions.Remove (pool);
+					return;
+				}
+
+				if (!data.ContainsKey ("pool")) {
+					callback ("Malformed data returned when creating pool", null);
+					_deferredActions.Remove (pool);
+					return;
+				}
+
+				Dictionary<string, object> poolData = (Dictionary<string, object>)data["pool"];
+
+				// Sanity check
+				if (!poolData.ContainsKey ("ip") || !poolData.ContainsKey ("sendPort") || !poolData.ContainsKey ("readPort") || !poolData.ContainsKey ("udpPort") || !poolData.ContainsKey ("httpPort")) {
+					callback ("Malformed data returned when creating pool", null);
+					_deferredActions.Remove (pool);
+					return;
+				}
+
+				Connect (poolData["ip"].ToString (), int.Parse (poolData["sendPort"].ToString ()), int.Parse (poolData["readPort"].ToString ()), int.Parse (poolData["udpPort"].ToString ()), (string err, object obj) => {
+					if (!string.IsNullOrEmpty (err)) {
+						callback (err, null);
+						_deferredActions.Remove (pool);
+						return;
+					}
+
+					// Now  go back to what we were doing
+					_deferredActions[pool] ();
+				});
+			});
+		}
+
 #region Control Messages
 
 		/// <summary>
@@ -559,8 +604,14 @@ namespace NYSU {
 		/// <param name="pool">Pool.</param>
 		/// <param name="poolType">Pool type.</param>
 		/// <param name="callback">Callback.</param>
-		public void AddToPoolMessage (string pool, string poolType, TBUtils.GenericObjectCallbackType callback)
+		public void AddToPoolMessage (string pool, string poolType, AtomicUtils.GenericObjectCallbackType callback)
 		{
+			// Request a connection if not connected
+			if (!isConnected) {
+				_ConnectAndDeferAction (pool, poolType, () => AddToPoolMessage (pool, poolType, callback), callback);
+				return;
+			}
+
 			Dictionary<string, object> netMsg = new Dictionary<string, object> () {
 				{ kAddPool, pool },
 				{ kPoolType, poolType },
@@ -586,9 +637,13 @@ namespace NYSU {
 		/// <param name="pool">Pool.</param>
 		/// <param name="poolType">Pool type.</param>
 		/// <param name="callback">Callback.</param>
-		public void MoveToPoolMessage (string pool, string poolType, TBUtils.GenericObjectCallbackType callback)
+		public void MoveToPoolMessage (string pool, string poolType, AtomicUtils.GenericObjectCallbackType callback)
 		{
-			Console.WriteLine ("MoveToPoolMessage");
+			// Request a connection if not connected
+			if (!isConnected) {
+				_ConnectAndDeferAction (pool, poolType, () => MoveToPoolMessage (pool, poolType, callback), callback);
+				return;
+			}
 
 			if (pool == _poolMembership[kMain]) {
 				Console.WriteLine ("Can not move from pool to same pool");
@@ -622,8 +677,13 @@ namespace NYSU {
 		/// <param name="pool">Pool.</param>
 		/// <param name="poolType">Pool type.</param>
 		/// <param name="callback">Callback.</param>
-		public void LeavePoolMessage (string pool, string poolType, TBUtils.GenericObjectCallbackType callback)
+		public void LeavePoolMessage (string pool, string poolType, AtomicUtils.GenericObjectCallbackType callback)
 		{
+			if (!isConnected) {
+				callback ("You are not connected to AtomicNet", null);
+				return;
+			}
+
 			if (pool == _poolMembership[kMain]) {
 				callback ("Unable to leave pool: You can not use Leave Pool command for your main pool. Use MoveToPool instead", null);
 				return;
@@ -656,8 +716,13 @@ namespace NYSU {
 		/// </summary>
 		/// <param name="pool">Pool.</param>
 		/// <param name="callback">Callback.</param>
-		public void SetConnectionAsPoolMasterMessage (string pool, TBUtils.GenericObjectCallbackType callback)
+		public void SetConnectionAsPoolMasterMessage (string pool, AtomicUtils.GenericObjectCallbackType callback)
 		{
+			if (!isConnected) {
+				callback ("You are not connected to AtomicNet", null);
+				return;
+			}
+
 			Dictionary<string, object> netMsg = new Dictionary<string, object> () {
 				{ kPoolMaster, pool },
 			};
@@ -920,7 +985,7 @@ namespace NYSU {
 
 #endregion
 
-		public void SendTCPMessage (Dictionary<string, object> netMsg, AtomicNetLib.PriorityChannel priority, TBUtils.GenericObjectCallbackType callback, bool requestReceipt = false)
+		public void SendTCPMessage (Dictionary<string, object> netMsg, AtomicNetLib.PriorityChannel priority, AtomicUtils.GenericObjectCallbackType callback, bool requestReceipt = false)
 		{
 			if (requestReceipt) {
 				if(!netMsg.ContainsKey(kRequestReceipt)){
@@ -957,7 +1022,7 @@ namespace NYSU {
 			}
 		}
 			
-		public void SendUDPMessage (Dictionary<string, object> netMsg, TBUtils.GenericObjectCallbackType callback)
+		public void SendUDPMessage (Dictionary<string, object> netMsg, AtomicUtils.GenericObjectCallbackType callback)
 		{
 			try {
 				string msg = MiniJSON.Json.Serialize (netMsg);

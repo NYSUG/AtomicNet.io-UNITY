@@ -42,8 +42,6 @@ public class CanvasBehavior : MonoBehaviour {
 
 		_readThread = new Thread (new ThreadStart (_ReadNetworkMessages));
 		_readThread.Start ();
-
-        AtomicNetRequest.Connect ();
 	}
 
 	private void OnApplicationQuit ()
@@ -93,6 +91,7 @@ public class CanvasBehavior : MonoBehaviour {
 
 	public void ConnectButtonPressed ()
 	{
+		/*
 		AtomicNet.instance.Connect (serverIPAddressInputField.text, int.Parse (sendPortInputField.text), int.Parse (readPortInputField.text), int.Parse (udpPortInputField.text), (string error, object obj) => {
 			if (!string.IsNullOrEmpty (error)) {
 				Debug.LogError (error);
@@ -102,7 +101,7 @@ public class CanvasBehavior : MonoBehaviour {
 			_isConnected = true;
 
 			Debug.Log ("AtomicNet connected successfully");
-		});
+		}); */
 	}
 
 	public void DisconnectButtonPressed ()
