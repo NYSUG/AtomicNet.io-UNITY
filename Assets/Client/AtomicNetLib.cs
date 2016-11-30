@@ -82,6 +82,8 @@ namespace NYSU {
 		public int rtt = 0;
 		public bool isStarted = false;
 		public bool isConnected = false;
+        public bool isPoolMaster = false;
+        public string masterPoolName = string.Empty; // The name of the pool this conn is the master of
 
 		// TCP Sockets
 		private TcpClient _readClient = null;
@@ -555,13 +557,13 @@ namespace NYSU {
 #endregion
 
 		// Pass in both the action and the initial callback in case we need to process an error
-		private void _ConnectAndDeferAction (string pool, string poolType, Action action, AtomicUtils.GenericObjectCallbackType callback)
+        private void _ConnectAndDeferAction (string pool, string poolType, string gameId, Action action, AtomicUtils.GenericObjectCallbackType callback)
 		{
 			// Store the action for use later
 			_deferredActions.Add (pool, action);
 
 			// Create a pool with this name
-			AtomicNetRequest.CreatePool (pool, poolType, AtomicNet.gameId, (string error, Dictionary<string, object> data) => {
+            AtomicNetRequest.CreatePool (pool, poolType, gameId, (string error, Dictionary<string, object> data) => {
 				if (!string.IsNullOrEmpty (error)) {
 					callback(error, null);
 					_deferredActions.Remove (pool);
@@ -604,11 +606,11 @@ namespace NYSU {
 		/// <param name="pool">Pool.</param>
 		/// <param name="poolType">Pool type.</param>
 		/// <param name="callback">Callback.</param>
-		public void AddToPoolMessage (string pool, string poolType, AtomicUtils.GenericObjectCallbackType callback)
+        public void AddToPoolMessage (string pool, string poolType, string gameId, AtomicUtils.GenericObjectCallbackType callback)
 		{
 			// Request a connection if not connected
 			if (!isConnected) {
-				_ConnectAndDeferAction (pool, poolType, () => AddToPoolMessage (pool, poolType, callback), callback);
+                _ConnectAndDeferAction (pool, poolType, gameId, () => AddToPoolMessage (pool, poolType, gameId, callback), callback);
 				return;
 			}
 
@@ -637,11 +639,11 @@ namespace NYSU {
 		/// <param name="pool">Pool.</param>
 		/// <param name="poolType">Pool type.</param>
 		/// <param name="callback">Callback.</param>
-		public void MoveToPoolMessage (string pool, string poolType, AtomicUtils.GenericObjectCallbackType callback)
+        public void MoveToPoolMessage (string pool, string poolType, string gameId, AtomicUtils.GenericObjectCallbackType callback)
 		{
 			// Request a connection if not connected
 			if (!isConnected) {
-				_ConnectAndDeferAction (pool, poolType, () => MoveToPoolMessage (pool, poolType, callback), callback);
+                _ConnectAndDeferAction (pool, poolType, gameId, () => MoveToPoolMessage (pool, poolType, gameId, callback), callback);
 				return;
 			}
 
@@ -763,20 +765,21 @@ namespace NYSU {
 				// Send a message up the send socket, letting them know which connId we're associated with
 				_SendConnIdMessage ();
 
-				if (!_callbackMappings.ContainsKey (kConnect)) {
-					Console.WriteLine ("We don't have a callback mapping for kConnect");
-					return;
-				}
+                if (!_callbackMappings.ContainsKey (kConnect)) {
+                    Console.WriteLine ("We don't have a callback mapping for kConnect");
+                } else {
 
-				// Queue this to be handled by AtomicNet.cs
-				callbackHandles.Enqueue (new CallbackHandle () {
-					type = kConnect,
-					callback = _callbackMappings[kConnect],
-					error = string.Empty,
-					obj = netMsg,
-				});
+                    // Queue this to be handled by AtomicNet.cs
+                    callbackHandles.Enqueue (new CallbackHandle ()
+                        {
+                            type = kConnect,
+                            callback = _callbackMappings[kConnect],
+                            error = string.Empty,
+                            obj = netMsg,
+                        });
 
-				_callbackMappings.Remove (kConnect);
+                    _callbackMappings.Remove (kConnect);
+                }
 			}
 
 			// Check for Network Relay Commands
@@ -787,20 +790,21 @@ namespace NYSU {
 
 				Console.WriteLine (string.Format ("AtomicNetLib -> main pool membership: {0}", _poolMembership[kMain]));
 
-				if (!_callbackMappings.ContainsKey (kMoveToPool)) {
-					Console.WriteLine ("We don't have a callback mapping for kMoveToPool");
-					return;
-				}
+                if (!_callbackMappings.ContainsKey (kMoveToPool)) {
+                    Console.WriteLine ("We don't have a callback mapping for kMoveToPool");
+                } else {
 
-				// Queue this to be handled by AtomicNet.cs
-				callbackHandles.Enqueue (new CallbackHandle () {
-					type = kMoveToPool,
-					callback = _callbackMappings[kMoveToPool],
-					error = string.Empty,
-					obj = netMsg,
-				});
+                    // Queue this to be handled by AtomicNet.cs
+                    callbackHandles.Enqueue (new CallbackHandle ()
+                        {
+                            type = kMoveToPool,
+                            callback = _callbackMappings[kMoveToPool],
+                            error = string.Empty,
+                            obj = netMsg,
+                        });
 
-				_callbackMappings.Remove (kMoveToPool);
+                    _callbackMappings.Remove (kMoveToPool);
+                }
 			}
 
 			if (netMsg.ContainsKey (kAddPool)) {
@@ -813,40 +817,47 @@ namespace NYSU {
 				}
 
 				// The server has changed us to this pool
-				if (!_callbackMappings.ContainsKey (kAddPool)) {
-					Console.WriteLine ("We don't have a callback mapping for kAddPool");
-					return;
-				}
+                if (!_callbackMappings.ContainsKey (kAddPool)) {
+                    Console.WriteLine ("We don't have a callback mapping for kAddPool");
+                } else {
 
-				// Queue this to be handled by AtomicNet.cs
-				callbackHandles.Enqueue (new CallbackHandle () {
-					type = kAddPool,
-					callback = _callbackMappings[kAddPool],
-					error = string.Empty,
-					obj = netMsg,
-				});
+                    // Queue this to be handled by AtomicNet.cs
+                    callbackHandles.Enqueue (new CallbackHandle ()
+                        {
+                            type = kAddPool,
+                            callback = _callbackMappings[kAddPool],
+                            error = string.Empty,
+                            obj = netMsg,
+                        });
 
-				_callbackMappings.Remove (kAddPool);
+                    _callbackMappings.Remove (kAddPool);
+                }
 			}
 
 			if (netMsg.ContainsKey (kPoolMaster)) {
 
+                // Set that we are the pool master
+                isPoolMaster = true;
+
 				Console.WriteLine (string.Format ("We have been set as the poolmaster of: {0}", netMsg[kPoolMaster]));
 
-				if (!_callbackMappings.ContainsKey (kPoolMaster)) {
-					Console.WriteLine ("We don't have a callback mapping for kPoolMaster");
-					return;
-				}
+                if (!_callbackMappings.ContainsKey (kPoolMaster)) {
+                    // TODO: We have been set as the server by being the first in the pool. We need to send that signal out
 
-				// Queue this to be handled by AtomicNet.cs
-				callbackHandles.Enqueue (new CallbackHandle () {
-					type = kPoolMaster,
-					callback = _callbackMappings[kPoolMaster],
-					error = string.Empty,
-					obj = netMsg,
-				});
+                    Console.WriteLine ("We don't have a callback mapping for kPoolMaster");
+                } else {
 
-				_callbackMappings.Remove (kPoolMaster);
+                    // Queue this to be handled by AtomicNet.cs
+                    callbackHandles.Enqueue (new CallbackHandle ()
+                        {
+                            type = kPoolMaster,
+                            callback = _callbackMappings[kPoolMaster],
+                            error = string.Empty,
+                            obj = netMsg,
+                        });
+
+                    _callbackMappings.Remove (kPoolMaster);
+                }
 			}
 
 			// Ping message

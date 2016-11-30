@@ -18,32 +18,6 @@ namespace NYSU {
         private const string kRemovePoolEndpoint = "/api/removePool";
         private const string kGetPoolsEndpoint = "/api/getPools";
 
-        public static void Connect ()
-        {
-            /*
-            GetPools ((string error, Dictionary<string, object> data) => {
-                if (!string.IsNullOrEmpty (error)) {
-                    Debug.LogError (error);
-                    return;
-                }
-
-                if (data.ContainsKey ("success")) {
-                    Debug.Log (string.Format ("success: {0}", data["success"].ToString ()));
-                }
-            }); */
-
-            CreatePool ("Tim's super fun pool of terror", "lobby", "12345", (string error, Dictionary<string, object> data) => {
-                if (!string.IsNullOrEmpty (error)) {
-                    Debug.LogError (error);
-                    return;
-                }
-
-                if (data.ContainsKey ("success")) {
-                    Debug.LogWarning (string.Format ("The operation was successful: {0}", data["success"].ToString ()));
-                }
-            });
-        }
-
         public static void GetPools (AtomicUtils.DictionaryCallbackType callback)
         {
 #if DEV_MODE

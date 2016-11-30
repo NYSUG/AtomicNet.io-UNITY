@@ -7,8 +7,8 @@ using NYSU;
 public class AtomicNet : MonoBehaviour {
 
 	public const string kAtomicNetPrefab = "NYSU/AtomicNet";
-	public const string kApiKey = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOiI1ODNjNjY4YWQxYjk2YzA5NGM3ZDVlYTkiLCJwcm9qZWN0SWQiOiI1ODNjNjY5ZGQxYjk2YzA5NGM3ZDVlYWEifQ.dZd3xxCuOIC6MmEn5vdBdE_teDWglxRc8EdZMeleau4";
-	public const string kProjectId = "583c669dd1b96c094c7d5eaa";
+    public const string kApiKey = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOiI1ODNiMTJmNTBmNzdlYTAzYjUzZGJiNTciLCJwcm9qZWN0SWQiOiI1ODNiMjU0MmU0OTIwMTA0NzE0YTA4YWEifQ.lcefofDwTK6rN6Yip7y6DtSIBXEfa3mgQoowT__MUDY";
+    public const string kProjectId = "583b2542e4920104714a08aa";
 
 #region Singleton
 
@@ -157,6 +157,15 @@ public class AtomicNet : MonoBehaviour {
 		return _atomicNetLib.isConnected;
 	}
 
+    /// <summary>
+    /// Determines whether this instance is pool master.
+    /// </summary>
+    /// <returns><c>true</c> if this instance is pool master; otherwise, <c>false</c>.</returns>
+    public bool IsPoolMaster ()
+    {
+        return _atomicNetLib.isPoolMaster;
+    }
+
 	/// <summary>
 	/// Gets the main connection pool.
 	/// </summary>
@@ -243,9 +252,9 @@ public class AtomicNet : MonoBehaviour {
 	/// <param name="poolName">Pool name.</param>
 	/// <param name="poolType">Pool type.</param>
 	/// <param name="callback">Callback.</param>
-	public void AddToPool (string poolName, string poolType, AtomicUtils.GenericObjectCallbackType callback)
+    public void AddToPool (string poolName, string poolType, string gameId, AtomicUtils.GenericObjectCallbackType callback)
 	{
-		_atomicNetLib.AddToPoolMessage (poolName, poolType, callback);
+		_atomicNetLib.AddToPoolMessage (poolName, poolType, gameId, callback);
 	}
 
 	/// <summary>
@@ -254,9 +263,9 @@ public class AtomicNet : MonoBehaviour {
 	/// <param name="poolName">Pool name.</param>
 	/// <param name="poolType">Pool type.</param>
 	/// <param name="callback">Callback.</param>
-	public void MoveToPool (string poolName, string poolType, AtomicUtils.GenericObjectCallbackType callback)
+    public void MoveToPool (string poolName, string poolType, string gameId, AtomicUtils.GenericObjectCallbackType callback)
 	{
-		_atomicNetLib.MoveToPoolMessage (poolName, poolType, callback);
+        _atomicNetLib.MoveToPoolMessage (poolName, poolType, gameId, callback);
 	}
 
 	/// <summary>
@@ -265,7 +274,7 @@ public class AtomicNet : MonoBehaviour {
 	/// <param name="poolName">Pool name.</param>
 	/// <param name="poolType">Pool type.</param>
 	/// <param name="callback">Callback.</param>
-	public void LeavePool (string poolName, string poolType, AtomicUtils.GenericObjectCallbackType callback)
+    public void LeavePool (string poolName, string poolType, AtomicUtils.GenericObjectCallbackType callback)
 	{
 		_atomicNetLib.LeavePoolMessage (poolName, poolType, callback);
 	}
@@ -275,7 +284,7 @@ public class AtomicNet : MonoBehaviour {
 	/// </summary>
 	/// <param name="poolName">Pool name.</param>
 	/// <param name="callback">Callback.</param>
-	public void SetConnectionAsPoolMaster (string poolName, AtomicUtils.GenericObjectCallbackType callback)
+    public void SetConnectionAsPoolMaster (string poolName, AtomicUtils.GenericObjectCallbackType callback)
 	{
 		_atomicNetLib.SetConnectionAsPoolMasterMessage (poolName, callback);
 	}

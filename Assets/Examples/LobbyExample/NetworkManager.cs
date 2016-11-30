@@ -119,9 +119,11 @@ public class NetworkManager : MonoBehaviour {
 		// Get the type from the object
 		NetworkMessages.MessageTypes type = (NetworkMessages.MessageTypes)System.Enum.Parse (typeof (NetworkMessages.MessageTypes), netMsg ["type"].ToString ());
 
+        Debug.Log (string.Format ("Server Message: {0}", type));
+
 		switch (type) {
-			case NetworkMessages.MessageTypes.JOIN_GAME:
-				// DO SERVER SPECIFIC BEHAVIOR HERE
+            case NetworkMessages.MessageTypes.JOIN_GAME:
+                Debug.Log (string.Format ("connId: {0} has joined the game", netMsg["connId"].ToString ()));
 			break;
 			default:
 				Debug.LogError (string.Format ("Unknown MessageType: {0}", type));
@@ -138,10 +140,14 @@ public class NetworkManager : MonoBehaviour {
 		// Get the type from the object
 		NetworkMessages.MessageTypes type = (NetworkMessages.MessageTypes)System.Enum.Parse (typeof (NetworkMessages.MessageTypes), netMsg ["type"].ToString ());
 
+        Debug.Log (string.Format ("Client Message: {0}", type));
+
 		switch (type) {
-			case NetworkMessages.MessageTypes.JOIN_GAME:
-				// DO CLIENT SPECIFIC BEHAVIOR HERE
-			break;
+            case NetworkMessages.MessageTypes.ADD_USERNAME:
+                RunOnMainThread (() => {
+                    GameObject.FindObjectOfType<LobbyManager> ().AddUserToChat (netMsg["username"].ToString ());
+                });
+            break;
 			default:
 				Debug.LogError (string.Format ("Unknown MessageType: {0}", type));
 			break;

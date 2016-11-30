@@ -113,7 +113,7 @@ public class CanvasBehavior : MonoBehaviour {
 
 	public void SetMainPoolButtonPressed ()
 	{
-		AtomicNet.instance.MoveToPool (poolNameInputField.text, poolTypeInputField.text, (string error, object obj) => {
+        AtomicNet.instance.MoveToPool (poolNameInputField.text, poolTypeInputField.text, AtomicNet.gameId, (string error, object obj) => {
 			if (!string.IsNullOrEmpty (error)) {
 				Debug.LogError (error);
 				return;
@@ -125,7 +125,7 @@ public class CanvasBehavior : MonoBehaviour {
 
 	public void AddToPoolButtonPressed ()
 	{
-		AtomicNet.instance.AddToPool (poolNameInputField.text, poolTypeInputField.text, (string error, object obj) => {
+        AtomicNet.instance.AddToPool (poolNameInputField.text, poolTypeInputField.text, AtomicNet.gameId, (string error, object obj) => {
 			if (!string.IsNullOrEmpty (error)) {
 				Debug.LogError (error);
 				return;
