@@ -22,6 +22,7 @@ public class LobbyManager : MonoBehaviour {
 	public GameObject lobbyListingPrefab;
 
 	// Chat Objects
+	public Text lobbyNameText;
 	public GameObject lobbyGameObject;
 	public Transform chatContextTransform;
 	public Transform playerContextTransform;
@@ -40,6 +41,7 @@ public class LobbyManager : MonoBehaviour {
 		Assert.IsNotNull (noLobbyFoundGameObject, string.Format ("{0}: noLobbyFoundGameObject has not been assigned in the inspector", this.name));
 		Assert.IsNotNull (findLobbyContextTransform, string.Format ("{0}: lobbyContextTransform has not been assigned in the inspector", this.name));
 		Assert.IsNotNull (lobbyListingPrefab, string.Format ("{0}: lobbyListingPrefab has not been assigned in the inspector", this.name));
+		Assert.IsNotNull (lobbyNameText, string.Format ("{0}: lobbyNameText has not been assigned in the inspector", this.name));
 		Assert.IsNotNull (lobbyGameObject, string.Format ("{0}: lobbyGameObject has not been assigned in the inspector", this.name));
 		Assert.IsNotNull (chatContextTransform, string.Format ("{0}: chatContextTransform has not been assigned in the inspector", this.name));
 		Assert.IsNotNull (playerContextTransform, string.Format ("{0}: playerContextTransform has not been assigned in the inspector", this.name));
@@ -57,6 +59,11 @@ public class LobbyManager : MonoBehaviour {
 
 	public void CreateLobbyButtonPressed ()
 	{
+		if (string.IsNullOrEmpty (usernameInputField.text)) {
+			Debug.LogError ("Please input a username before joining/creating a lobby");
+			return;
+		}
+
         _MoveToPool (lobbyNameInputField.text, gameIdInputField.text);
 	}
 
@@ -78,7 +85,17 @@ public class LobbyManager : MonoBehaviour {
 			// Show the no result found message
 			if (pools.Count == 0) {
 
+				// Display the no lobbies found message
+				NetworkManager.RunOnMainThread (() => {
+					noLobbyFoundGameObject.SetActive (true);
+				});
+
 			} else {
+
+				// Display the no lobbies found message
+				NetworkManager.RunOnMainThread (() => {
+					noLobbyFoundGameObject.SetActive (false);
+				});
 
 				// Populate lobbies
 				foreach (object obj in pools) {
@@ -99,7 +116,24 @@ public class LobbyManager : MonoBehaviour {
 
     public void JoinLobby (string lobbyName, string gameId)
 	{
+		if (string.IsNullOrEmpty (usernameInputField.text)) {
+			Debug.LogError ("Please input a username before joining/creating a lobby");
+			return;
+		}
+
         _MoveToPool (lobbyName, gameId);
+	}
+
+	public void LeaveLobby ()
+	{
+		AtomicNet.instance.LeavePool (lobbyNameText.text, "lobby", AtomicNet.gameId, (string error, object obj) => {
+			if (!string.IsNullOrEmpty (error)) {
+				Debug.LogError (error);
+				return;
+			}
+
+			Debug.Log ("We have successfully left the lobby");
+		});
 	}
 
     public void SendMessageButtonPressed ()
@@ -130,6 +164,26 @@ public class LobbyManager : MonoBehaviour {
 
 #endregion
 
+	public void ResetLobby ()
+	{
+		Debug.Log ("Resetting Lobby");
+
+		NetworkManager.RunOnMainThread (() => {
+
+			// Set the lobby name text
+			lobbyNameText.text = string.Empty;
+
+			// Hide The Create Lobby Panel
+			connectLobbyGameObject.SetActive (true);
+
+			// Hide the Find Lobby Panel
+			findLobbyGameObject.SetActive (true);
+
+			// Set the Lobby Panel Active
+			lobbyGameObject.SetActive (false);
+		});
+	}
+
     /// <summary>
     /// Adds the user to chat. Since this direclty uses MonoBehavior methods this must be
     /// run on the main thread.
@@ -159,6 +213,9 @@ public class LobbyManager : MonoBehaviour {
 			// AtomicNet callbacks are run on a background thread
 			// MonoBehaviors have to run on the main thread
 			NetworkManager.RunOnMainThread (() => {
+
+				// Set the lobby name text
+				lobbyNameText.text = poolName;
 
 				// Hide The Create Lobby Panel
 				connectLobbyGameObject.SetActive (false);

@@ -143,6 +143,11 @@ public class NetworkManager : MonoBehaviour {
         Debug.Log (string.Format ("Client Message: {0}", type));
 
 		switch (type) {
+			case NetworkMessages.MessageTypes.SERVER_DISCONNECT:
+				Debug.LogError ("The Server has disconnected");
+				GameObject.FindObjectOfType<LobbyManager> ().ResetLobby ();
+			break;
+
             case NetworkMessages.MessageTypes.ADD_USERNAME:
                 RunOnMainThread (() => {
                     GameObject.FindObjectOfType<LobbyManager> ().AddUserToChat (netMsg["username"].ToString ());

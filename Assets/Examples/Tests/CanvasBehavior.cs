@@ -137,7 +137,7 @@ public class CanvasBehavior : MonoBehaviour {
 
 	public void RemoveFromPoolButtonPressed ()
 	{
-		AtomicNet.instance.LeavePool (poolNameInputField.text, poolTypeInputField.text, (string error, object obj) => {
+		AtomicNet.instance.LeavePool (poolNameInputField.text, poolTypeInputField.text, AtomicNet.gameId, (string error, object obj) => {
 			if (!string.IsNullOrEmpty (error)) {
 				Debug.LogError (error);
 				return;

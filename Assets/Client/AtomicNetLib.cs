@@ -679,7 +679,7 @@ namespace NYSU {
 		/// <param name="pool">Pool.</param>
 		/// <param name="poolType">Pool type.</param>
 		/// <param name="callback">Callback.</param>
-		public void LeavePoolMessage (string pool, string poolType, AtomicUtils.GenericObjectCallbackType callback)
+		public void LeavePoolMessage (string pool, string poolType, string gameId, AtomicUtils.GenericObjectCallbackType callback)
 		{
 			if (!isConnected) {
 				callback ("You are not connected to AtomicNet", null);
