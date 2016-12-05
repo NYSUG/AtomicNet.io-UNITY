@@ -106,7 +106,7 @@ public class AtomicNet : MonoBehaviour {
 		}
 
 		// Init AtomicNetLib
-		_atomicNetLib.Init ();
+		_atomicNetLib.Init (kApiKey, kProjectId);
 	}
 
 	/// <summary>
