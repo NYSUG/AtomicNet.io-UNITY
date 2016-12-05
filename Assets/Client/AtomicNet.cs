@@ -99,6 +99,8 @@ public class AtomicNet : MonoBehaviour {
 	/// </summary>
 	public void StartAtomicNetClient ()
 	{
+		Debug.Log ("Starting AtomicNet Client");
+
 		// Sanity Check
 		if (_atomicNetLib.isStarted) {
 			Debug.LogWarning ("Unable to start client: Client is already started");
@@ -114,6 +116,8 @@ public class AtomicNet : MonoBehaviour {
 	/// </summary>
 	public void StopAtomicNetClient ()
 	{
+		Debug.Log ("Stopping AtomicNet Client");
+
 		// Sanity Check
 		if (!_atomicNetLib.isStarted) {
 			Debug.LogWarning ("Unable to stop AtomicNet: Client is not started");

@@ -48,6 +48,11 @@ public class NetworkManager : MonoBehaviour {
 		}
 	}
 
+	private void OnDestroy ()
+	{
+		_readThread.Abort ();
+	}
+
 #endregion
 
 	/// <summary>

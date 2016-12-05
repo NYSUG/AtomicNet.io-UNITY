@@ -217,6 +217,11 @@ namespace NYSU {
 
 		public void Connect (string ipAddress, int sendPort, int readPort, int udpPort, AtomicUtils.GenericObjectCallbackType callback)
 		{
+			// Sanity check
+			if (!isStarted) {
+				Init ();
+			}
+
 			try {
 				// Connect the read socket
 				_readClient.Connect (ipAddress, readPort);
@@ -594,6 +599,9 @@ namespace NYSU {
 
 					// Now  go back to what we were doing
 					_deferredActions[pool] ();
+
+					// Remove the action
+					_deferredActions.Remove (pool);
 				});
 			});
 		}

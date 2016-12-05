@@ -124,16 +124,22 @@ public class LobbyManager : MonoBehaviour {
         _MoveToPool (lobbyName, gameId);
 	}
 
-	public void LeaveLobby ()
+	public void LeaveLobbyButtonPressed ()
 	{
-		AtomicNet.instance.LeavePool (lobbyNameText.text, "lobby", AtomicNet.gameId, (string error, object obj) => {
-			if (!string.IsNullOrEmpty (error)) {
-				Debug.LogError (error);
-				return;
-			}
+		// Disconnect
+		AtomicNet.instance.StopAtomicNetClient ();
 
-			Debug.Log ("We have successfully left the lobby");
-		});
+		// Set the lobby name text
+		lobbyNameText.text = string.Empty;
+
+		// Hide The Create Lobby Panel
+		connectLobbyGameObject.SetActive (true);
+
+		// Hide the Find Lobby Panel
+		findLobbyGameObject.SetActive (true);
+
+		// Set the Lobby Panel Active
+		lobbyGameObject.SetActive (false);
 	}
 
     public void SendMessageButtonPressed ()
