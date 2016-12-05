@@ -7,8 +7,6 @@ using NYSU;
 public class AtomicNet : MonoBehaviour {
 
 	public const string kAtomicNetPrefab = "NYSU/AtomicNet";
-	public const string kApiKey = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOiI1ODNjNjY4YWQxYjk2YzA5NGM3ZDVlYTkiLCJwcm9qZWN0SWQiOiI1ODNjNjY5ZGQxYjk2YzA5NGM3ZDVlYWEifQ.dZd3xxCuOIC6MmEn5vdBdE_teDWglxRc8EdZMeleau4";
-	public const string kProjectId = "583c669dd1b96c094c7d5eaa";
 
 #region Singleton
 
