@@ -74,4 +74,32 @@ This command is used to leave connection pools
 This will set this connection as the poolMaster of the pool.
 
 ## Pool Masters
-A Pool Master is the leader of the pool. You game server should set itself as the pool master in order to get all of the pool master messages.
+A Pool Master is the leader of the pool. You game server should set itself as the pool master in order to get all of the pool master messages. Only clients that have been marked as a poolMaster will get the messages delivered in the CheckForServerMessages method.
+
+## Sending Messages
+There are multiple options for sending messages to other clients using both TCP and UDP. If no poolName is provided the Main Pool will be automatically chosen to send the message to. They are as follows:
+
+```
+public void SendTCPMessageToPool (string poolName, Dictionary<string, object> netMsg, AtomicNetLib.PriorityChannel priority, AtomicUtils.GenericObjectCallbackType callback, bool requestReceipt = false)
+```
+This method will send a TCP message to every connected device in the pool (including the sender)
+
+```
+public void SendUDPMessageToPool (string poolName, Dictionary<string, object> netMsg, AtomicUtils.GenericObjectCallbackType callback)
+```
+This method will send a UDP message to every connected device in the pool (including the sender)
+
+```
+public void SendTCPMessageToPoolMaster (string poolName, Dictionary<string, object> netMsg, AtomicNetLib.PriorityChannel priority, AtomicUtils.GenericObjectCallbackType callback, bool requestReceipt = false)
+```
+This method will send a TCP message to the Pool Master (a.k.a the server in this pool)
+
+```
+public void SendUDPMessageToPoolMaster (string poolName, Dictionary<string, object> netMsg, AtomicUtils.GenericObjectCallbackType callback)
+```
+This method will send a UDP message to the Pool Master (a.k.a the server in this pool)
+
+## Receipt Requests
+AtomicNet provides an option called receipts. When a receipt has been requested, the AtomicNet servers will attempt to re-send this message on your behalf until it gets a confirmation receipt back from the client. Receipts are hard-coded to retry 5 times with a 5 second delay each time. If a receipt confirmation fails a message is sent back to the requestor with the connId of the failed device. This option should be used sparingly as it produces a lot of overhead for your pools and project.
+
+
